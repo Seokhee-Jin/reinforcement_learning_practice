@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import argparse
+from tqdm import tqdm
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -257,7 +258,8 @@ class PPOagent(object):
                 gaes, y_i = self.gae_target(rewards, v_values.numpy(), next_v_value.numpy(), done)
 
                 # 에포크만큼 반복
-                for _ in tqdm(range(self.EPOCHS), desc=f"Epoch progress of episode {ep}", ):
+                #for _ in tqdm(range(self.EPOCHS), desc=f"Epoch progress of episode {ep}", ):
+                for _ in range(self.EPOCHS):
                     self.actor_learn(tf.convert_to_tensor(log_old_policy_pdfs, dtype=tf.float32),
                                      tf.convert_to_tensor(states, dtype=tf.float32),
                                      tf.convert_to_tensor(actions, dtype=tf.float32),

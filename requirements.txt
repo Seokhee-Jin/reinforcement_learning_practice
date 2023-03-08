@@ -1,12 +1,12 @@
 absl-py==1.4.0
 astunparse==1.6.3
 cachetools==5.3.0
-certifi @ file:///C:/b/abs_85o_6fm0se/croot/certifi_1671487778835/work/certifi
+certifi==2022.12.7
 charset-normalizer==3.1.0
 cloudpickle==2.2.1
-colorama @ file:///C:/b/abs_a9ozq0l032/croot/colorama_1672387194846/work
-contourpy @ file:///C:/b/abs_d5rpy288vc/croots/recipe/contourpy_1663827418189/work
-cycler @ file:///tmp/build/80754af9/cycler_1637851556182/work
+colorama==0.4.6
+contourpy==1.0.5
+cycler==0.11.0
 flatbuffers==23.3.3
 fonttools==4.25.0
 gast==0.4.0
@@ -19,16 +19,16 @@ gymnasium-notices==0.0.1
 h5py==3.8.0
 idna==3.4
 importlib-metadata==6.0.0
-importlib-resources @ file:///tmp/build/80754af9/importlib_resources_1625135880749/work
+importlib-resources==5.2.0
 jax-jumpy==0.2.0
 keras==2.11.0
-kiwisolver @ file:///C:/b/abs_88mdhvtahm/croot/kiwisolver_1672387921783/work
+kiwisolver==1.4.4
 libclang==15.0.6.1
 Markdown==3.4.1
 MarkupSafe==2.1.2
-matplotlib @ file:///C:/b/abs_b2d7uv90hg/croot/matplotlib-suite_1677674332463/work
+matplotlib==3.7.0
 mkl-fft==1.3.1
-mkl-random @ file:///C:/ci/mkl_random_1626186184308/work
+mkl-random==1.2.2
 mkl-service==2.4.0
 munkres==1.1.4
 numpy==1.24.2
@@ -36,35 +36,37 @@ oauthlib==3.2.2
 opt-einsum==3.3.0
 packaging==23.0
 Pillow==9.4.0
+pip==23.0.1
 ply==3.11
 protobuf==3.19.6
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pygame==2.2.0
-pyparsing @ file:///C:/Users/BUILDE~1/AppData/Local/Temp/abs_7f_7lba6rl/croots/recipe/pyparsing_1661452540662/work
+pyparsing==3.0.9
 PyQt5==5.15.7
-PyQt5-sip @ file:///C:/Windows/Temp/abs_d7gmd2jg8i/croots/recipe/pyqt-split_1659273064801/work/pyqt_sip
-python-dateutil @ file:///tmp/build/80754af9/python-dateutil_1626374649649/work
+PyQt5-sip==12.11.0
+python-dateutil==2.8.2
 requests==2.28.2
 requests-oauthlib==1.3.1
 rsa==4.9
-sip @ file:///C:/Windows/Temp/abs_b8fxd17m2u/croots/recipe/sip_1659012372737/work
-six @ file:///tmp/build/80754af9/six_1644875935023/work
+setuptools==65.6.3
+sip==6.6.2
+six==1.16.0
 tensorboard==2.11.2
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
-tensorflow==2.11.0
 tensorflow-estimator==2.11.0
 tensorflow-gpu==2.10.0
 tensorflow-intel==2.11.0
 tensorflow-io-gcs-filesystem==0.31.0
 termcolor==2.2.0
-toml @ file:///tmp/build/80754af9/toml_1616166611790/work
-tornado @ file:///C:/ci/tornado_1662458743919/work
-tqdm @ file:///C:/b/abs_0axbz66qik/croots/recipe/tqdm_1664392691071/work
+toml==0.10.2
+tornado==6.2
+tqdm==4.64.1
 typing_extensions==4.5.0
 urllib3==1.26.14
 Werkzeug==2.2.3
+wheel==0.38.4
 wincertstore==0.2
 wrapt==1.15.0
 zipp==3.15.0
