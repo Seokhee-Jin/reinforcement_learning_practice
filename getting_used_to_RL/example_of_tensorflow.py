@@ -91,20 +91,3 @@ model.compile(loss=SparseCategoricalCrossentropy(from_logits=True), optimizer=Ad
 model.summary()
 model.fit(x_tr, y_tr, epochs=3, batch_size=32, validation_split=0.2)
 
-
-import threading
-
-a = 0
-def add1():
-    global a
-    a += 1
-
-def add2():
-    global a
-    a += 10
-add1()
-a
-add2()
-a
-
-threading.Thread(target=add1, args=)
