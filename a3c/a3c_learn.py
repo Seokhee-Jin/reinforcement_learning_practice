@@ -16,7 +16,6 @@ import threading
 import multiprocessing
 
 # 액터 신경망
-
 class Actor(Model):
 
     def __init__(self, action_dim, action_bound):
@@ -41,7 +40,7 @@ class Actor(Model):
         return [mu, std]
 
         '''# 평균값을 [-action_bound, action_bound] 범위로 조정
-        mu = Lambda(lambda x: x*self.action_bound)(mu)''' # 흠.. call층에서 한 이유가 있을까? 
+        mu = Lambda(lambda x: x*self.action_bound)(mu)''' # 흠.. call층에서 한 이유가 있을까?
 
 ## 크리틱 신경망
 
