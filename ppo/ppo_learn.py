@@ -1,5 +1,4 @@
-#coded by St.Watermelon
-
+# coded by St.Watermelon
 import tensorflow as tf
 from tensorflow.python.keras.models import Model
 from tensorflow.python.keras.layers import Dense, Lambda
@@ -10,7 +9,6 @@ import gymnasium as gym
 
 import numpy as np
 import matplotlib.pyplot as plt
-
 
 import argparse
 
@@ -76,14 +74,15 @@ class Critic(Model):
 
 ## PPO 에이전트 클래스
 class PPOagent(object):
-    def __init__(self, env: gym.Env, args: argparse.Namespace):
+    def __init__(self, env: gym.Env):
+        args = get_args()
         # IDE 코딩에도 편하고 CLI 에서도 편하게 사용하기 위한 argument hadling..
         self.GAMMA = args.gamma
         self.GAE_LAMBDA = args.gae_lambda
         self.BATCH_SIZE = args.batch_size
         self.ACTOR_LEARNING_RATE = args.actor_learning_rate
         self.CRITIC_LEARNING_RATE = args.critic_learning_rate
-        self.RATIO_CLIPPING = args.ratic_clipping
+        self.RATIO_CLIPPING = args.ratio_clipping
         self.EPOCHS = args.epochs
         # ...
 
@@ -131,8 +130,8 @@ class PPOagent(object):
 
     ## GAE와 시간차 타깃 계산
     def gae_target(self, rewards, v_values, next_v_value, done):
-        n_step_targets = np.zeros.like(rewards)
-        gae = np.zerors.like(rewards)
+        n_step_targets = np.zeros_like(rewards)
+        gae = np.zeros_like(rewards)
         gae_cumulative = 0
         forward_val = 0 # done일 경우 next_v_value는 논리상 0이 되어야 함.
 
@@ -197,14 +196,14 @@ class PPOagent(object):
             time, episode_reward, done = 0, 0, False
 
             #환경 초기화 및 초기 상태 관측
-            state = self.env.reset()
+            state, _ = self.env.reset()
 
             while not done:
                 # 환경 가시화
                 #self.env.render()
 
                 # 이전 정책의 평균, 표준편차를 계산하고 행동 샘플링
-                mu_old, std_old, action = self.get_policy_action(tf.convert_to_tensor(state)) # todo: convert_to_tensor의 의의?
+                mu_old, std_old, action = self.get_policy_action(tf.convert_to_tensor([state], dtype=tf.float32)) # todo: convert_to_tensor의 의의?
 
                 #행동 범위 클리핑
                 action = np.clip(action, -self.action_bound, self.action_bound)
@@ -215,7 +214,7 @@ class PPOagent(object):
                 log_old_policy_pdf = np.sum(log_old_policy_pdf) # np의 reduce_sum.. 배치차원 없애기 위함인듯. 스칼라 반환.
 
                 # 다음 상태, 보상 관측
-                next_state, reward, done, _ = self.env.step(action)
+                next_state, reward, done, _, _ = self.env.step(action)
 
                 # shape 변환
                 state = np.reshape(state, [1, self.state_dim])
@@ -291,31 +290,8 @@ class PPOagent(object):
         plt.show()
 
 
-
-
-
-
-
-''' # unpack 테스트 
-rewards1 = [[1],[2],[3],[4]] -> array([1, 2, 3, 4])
-np.array(rewards1).shape
-rewards1.
-unpack_batch(rewards1).ndim
-'''
-rewards1 = [[1],[2],[3],[4]]
-
-tf.squeeze(rewards1)
-np.array(rewards1).reshape()
-import tensorflow as tf
-import numpy as np
-tf.squeeze(tf.ones((1,1,1,1)))
-tf.squeeze(rewards1)
-
-rewards1.shape
-rewards1.reshape()
-
 if __name__ == "__main__":
-    args = get_args()/
+    args = get_args()
     print(f"args.GAMMA: {args.gamma}, args.GAE_LAMBDA: {args.gae_lambda}")
     print(args)
 
