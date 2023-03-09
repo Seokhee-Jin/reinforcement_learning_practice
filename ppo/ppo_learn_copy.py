@@ -162,7 +162,7 @@ class PPOagent(object):
     ## 액터 신경망 학습
     def actor_learn(self, log_old_policy_pdf, states, actions, gaes):
         with tf.GradientTape() as tape:
-            mu_a, std_a = self.actor(states)  # todo: training 제거해서 테스트해보자
+            mu_a, std_a = self.actor(states, training=True)  # todo: training 제거해서 테스트해보자
             log_policy_pdf = self.log_pdf(mu_a, std_a, actions)
 
             ratio = tf.exp(log_policy_pdf-log_old_policy_pdf)
@@ -177,7 +177,7 @@ class PPOagent(object):
     ## 크리틱 신경망 학습
     def critic_learn(self, states, td_targets):
         with tf.GradientTape() as tape:
-            td_hat = self.critic(states)  # todo: training 제거해서 테스트해보자
+            td_hat = self.critic(states, training=True)  # todo: training 제거해서 테스트해보자
             loss = tf.reduce_mean(tf.square(td_targets-td_hat))  # 여기서 loss는 mse 즉 "mean" squared error 이다. 주의.
 
         grads = tape.gradient(loss, self.critic.trainable_variables)
