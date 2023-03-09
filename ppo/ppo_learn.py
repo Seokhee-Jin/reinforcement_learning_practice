@@ -9,6 +9,7 @@ import gymnasium as gym
 
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 import argparse
 
@@ -27,6 +28,7 @@ def get_parser() -> argparse.ArgumentParser:
 
 def get_args() -> argparse.Namespace:
     parser = get_parser()
+    print(parser.parse_known_args()[0])
     return parser.parse_known_args()[0]
 
 
@@ -76,7 +78,7 @@ class Critic(Model):
 class PPOagent(object):
     def __init__(self, env: gym.Env):
         args = get_args()
-        # IDE 코딩에도 편하고 CLI 에서도 편하게 사용하기 위한 argument hadling..
+        # IDE 코딩에도 편하고 CLI 에서도 편하게 사용하기 위한 argument handling..
         self.GAMMA = args.gamma
         self.GAE_LAMBDA = args.gae_lambda
         self.BATCH_SIZE = args.batch_size
@@ -191,14 +193,14 @@ class PPOagent(object):
         batch_log_old_policy_pdf = []
 
         # 에피소드마다 다음을 반복
-        for ep in range(int(max_episode_num)):
+        for ep in tqdm(range(int(max_episode_num)), desc=f"Episode progress of max_episode_num: {max_episode_num}"):
             # 에피소드 초기화
             time, episode_reward, done = 0, 0, False
 
             #환경 초기화 및 초기 상태 관측
             state, _ = self.env.reset()
 
-            while not done:
+            while not done or not truncated:
                 # 환경 가시화
                 #self.env.render()
 
@@ -214,7 +216,7 @@ class PPOagent(object):
                 log_old_policy_pdf = np.sum(log_old_policy_pdf) # np의 reduce_sum.. 배치차원 없애기 위함인듯. 스칼라 반환.
 
                 # 다음 상태, 보상 관측
-                next_state, reward, done, _, _ = self.env.step(action)
+                next_state, reward, done, truncated, _ = self.env.step(action)
 
                 # shape 변환
                 state = np.reshape(state, [1, self.state_dim])
@@ -256,7 +258,7 @@ class PPOagent(object):
                 gaes, y_i = self.gae_target(rewards, v_values.numpy(), next_v_value.numpy(), done)
 
                 # 에포크만큼 반복
-                for _ in range(self.EPOCHS):
+                for _ in tqdm(range(self.EPOCHS), desc=f"Epoch progress of episode {ep}", ):
                     self.actor_learn(tf.convert_to_tensor(log_old_policy_pdfs, dtype=tf.float32),
                                      tf.convert_to_tensor(states, dtype=tf.float32),
                                      tf.convert_to_tensor(actions, dtype=tf.float32),
@@ -288,10 +290,4 @@ class PPOagent(object):
     def plot_result(self):
         plt.plot(self.save_epi_reward)
         plt.show()
-
-
-if __name__ == "__main__":
-    args = get_args()
-    print(f"args.GAMMA: {args.gamma}, args.GAE_LAMBDA: {args.gae_lambda}")
-    print(args)
 
