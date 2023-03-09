@@ -299,6 +299,7 @@ class PPOagent(object):
         print(self.save_epi_reward)
 
     def plot_result(self):
+        plt.figure("Jin")
         plt.plot(self.save_epi_reward)
         plt.show()
 
