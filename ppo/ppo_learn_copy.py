@@ -65,7 +65,7 @@ class Critic(Model):
         self.h1 = Dense(64, activation=relu)
         self.h2 = Dense(32, activation=relu)
         self.h3 = Dense(16, activation=relu)
-        self.v = Dense(1, activation='linear') #  todo: linear안써도 될거같은데... 교수님도 그렇다고 하심.. 그냥 명시 용도거나 버전에 의한 변형 방지인듯.
+        self.v = Dense(1) #  todo: linear안써도 될거같은데... 교수님도 그렇다고 하심.. 그냥 명시 용도거나 버전에 의한 변형 방지인듯.
 
     def call(self, state):
         x = self.h1(state)
@@ -118,7 +118,7 @@ class PPOagent(object):
         std = tf.clip_by_value(std, self.std_bound[0], self.std_bound[1])
         var = std**2
         log_policy_pdf = -0.5 * (action - mu)**2 / var - 0.5 * tf.math.log(var * 2 * np.pi)
-        return tf.reduce_sum(log_policy_pdf, 1, keepdims=True) # keepdimgs 아주 중요..
+        return tf.reduce_sum(log_policy_pdf, 1, keepdims=True)  # keepdimgs 아주 중요..
 
 
     ## 액터 신경망으로 정책의 평균, 표준편차를 계산하고 행동 샘플링
@@ -162,13 +162,13 @@ class PPOagent(object):
     ## 액터 신경망 학습
     def actor_learn(self, log_old_policy_pdf, states, actions, gaes):
         with tf.GradientTape() as tape:
-            mu_a, std_a = self.actor(states, training=True)  # todo: training 제거해서 테스트해보자
-            log_policy_pdf = self.log_pdf(mu_a, std_a, actions) #
+            mu_a, std_a = self.actor(states)  # todo: training 제거해서 테스트해보자
+            log_policy_pdf = self.log_pdf(mu_a, std_a, actions)
 
             ratio = tf.exp(log_policy_pdf-log_old_policy_pdf)
             clipped_ratio = tf.clip_by_value(ratio, 1.0-self.RATIO_CLIPPING, 1.0+self.RATIO_CLIPPING)
             surrogate = tf.minimum(ratio*gaes, clipped_ratio*gaes) # 여기 음수 붙이는거 책에서 조금 수정했음. 안되면 복원할 것.
-            loss = -tf.reduce_mean(surrogate)  # todo: 아니 책에선 reduce_mean을 쓰네.. sum써봐서 비교해보자
+            loss = -tf.reduce_sum(surrogate)  # todo: 아니 책에선 reduce_mean을 쓰네.. sum써봐서 비교해보자
             # -> 흠.. 어차피 mean이나 sum이나 최소화 한다는 건 같으니까 차이 없을 것 같음. batch크기가 전부 모조리 동일하니까..
 
         grads = tape.gradient(loss, self.actor.trainable_variables)
@@ -177,7 +177,7 @@ class PPOagent(object):
     ## 크리틱 신경망 학습
     def critic_learn(self, states, td_targets):
         with tf.GradientTape() as tape:
-            td_hat = self.critic(states, training=True)  # todo: training 제거해서 테스트해보자
+            td_hat = self.critic(states)  # todo: training 제거해서 테스트해보자
             loss = tf.reduce_mean(tf.square(td_targets-td_hat))  # 여기서 loss는 mse 즉 "mean" squared error 이다. 주의.
 
         grads = tape.gradient(loss, self.critic.trainable_variables)
@@ -185,8 +185,8 @@ class PPOagent(object):
 
     ## 신경망 파라미터 로드
     def load_weights(self, path):
-        self.actor.load_weights(path + "pendulum_actor.h5") # os.path.join(..,..) 가 더 나을듯..
-        self.critic.load_weights(path + "pendulum_critic.h5")
+        self.actor.load_weights(path + "jin_pendulum_actor.h5") # os.path.join(..,..) 가 더 나을듯..
+        self.critic.load_weights(path + "jin_pendulum_critic.h5")
 
     ## 에이전트 학습
     def train(self, max_episode_num):
@@ -249,14 +249,15 @@ class PPOagent(object):
 
                 # 배치가 채워지면, 학습 진행
                 # 배치에서 데이터 추출
-                states = self.unpack_batch(batch_state)
+                '''states = self.unpack_batch(batch_state)
                 actions = self.unpack_batch(batch_action)
                 rewards = self.unpack_batch(batch_reward)
-                log_old_policy_pdfs = self.unpack_batch(batch_log_old_policy_pdf)
-                '''states = np.squeeze(batch_state)
+                log_old_policy_pdfs = self.unpack_batch(batch_log_old_policy_pdf)'''
+                states = np.squeeze(batch_state)
                 actions = np.squeeze(batch_action)
                 rewards = np.squeeze(batch_reward)
-                log_old_policy_pdfs = np.squeeze(batch_log_old_policy_pdf)'''  # todo: squeeze로 되는지 테스트해보기.
+                log_old_policy_pdfs = np.squeeze(batch_log_old_policy_pdf)  # todo: squeeze로 되는지 테스트해보기.
+
                 # 배치 비움
                 batch_state, batch_action, batch_reward = [], [], []
                 batch_log_old_policy_pdf = []
@@ -289,12 +290,12 @@ class PPOagent(object):
 
             # 에피소드 10번마다 신경망 파라미터를 파일에 저장
             if ep % 10 == 0:
-                self.actor.save_weights("./save_weights/pendulum_actor.h5")
-                self.critic.save_weights("./save_weights/pendulum_critic.h5")
+                self.actor.save_weights("./save_weights/jin_pendulum_actor.h5")
+                self.critic.save_weights("./save_weights/jin_pendulum_critic.h5")
 
 
         # 학습이 끝난 후, 누적 보상값 저장
-        np.savetxt("./save_weights/pendulum_epi_reward.txt", self.save_epi_reward)
+        np.savetxt("./save_weights/jin_pendulum_epi_reward.txt", self.save_epi_reward)
         print(self.save_epi_reward)
 
     def plot_result(self):
