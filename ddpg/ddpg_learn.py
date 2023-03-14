@@ -1,6 +1,10 @@
 # DDPG Actor (tf2 subclassing version: using chain rule to train Actor)
 # coded by St.Watermelon
 # https://pasus.tistory.com/138
+import argparse
+import os
+os.makedirs("./save_weights/", exist_ok=True)
+
 import gymnasium
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,7 +15,6 @@ from tensorflow.python.keras.optimizer_v2.adam import Adam
 import tensorflow as tf
 
 from replaybuffer import ReplayBuffer
-import argparse
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -100,13 +103,14 @@ class DDPGagent(object):
         self.target_critic = Critic()  # todo: 이것도 점진적으로 업데이트 해야할텐데...
 
         self.actor.build(input_shape=(None, self.state_dim))
-        self.critic.build(input_shape=(None, self.state_dim)) # todo: 이것도 지워도 될듯. 빌드를 지금 안하면 train할때마다 구조가 바뀔까?
-        # todo: target 은 왜 빌드 안함? 복사해서 빌드하나?  -> target은
+        self.target_actor.build(input_shape=(None, self.state_dim))  # todo: 이것도 지워도 될듯. 빌드를 지금 안하면 train할때마다 구조가 바뀔까?
+
 
         state_in = Input((self.state_dim,))
         action_in = Input((self.action_dim,))
         self.critic([state_in, action_in]) # todo: 일종의 build인듯. 이럴거면 그냥 Model 첫번째 레이어에 input shape를 지정하지..
         self.target_critic([state_in, action_in])  # todo: 뭔가 일관적이지 않은 사용법때문에 혼동만됨... 테스트해보자
+
 
         self.actor.summary()
         self.critic.summary()
@@ -146,7 +150,7 @@ class DDPGagent(object):
         # -> 아하. loss에 대한 트레이너블 변수였으면 동결 안됨. 이런식으로 동결..
         self.critic_opt.apply_gradients(zip(grads, self.critic.trainable_variables))
 
-    def actor_learn(self, states):
+    def actor_learn(self, states):  # actor_learn에선 target_actor가 안쓰임. target_actor, target_critic 모두 citic_learn에서 쓰임
         """train the actor network"""
         with tf.GradientTape() as tape:
             actions = self.actor(states, training=True)
@@ -164,14 +168,14 @@ class DDPGagent(object):
     def gaussian_noise(self, x, mu=0, sigma=0.2):
         return x + np.random.normal(0, 0.2)
 
-    def td_target(self, rewards, q_values, dones, truncated):
+    def td_target(self, rewards, q_values, dones, truncateds):
         """ computing TD target: y_k = r_k + gamma*Q(x_k+1, u_k+1) """
         y_k = np.asarray(q_values)  # todo: np.asarray() 확인해보기...
         for i in range(q_values.shape[0]):  # number of batch
-            if dones[i] or truncated[i]:
+            if dones[i] or truncateds[i]:
                 y_k[i] = rewards[i]
             else:
-                y_k[i] = rewards[i] + self.GAMMA * q_values
+                y_k[i] = rewards[i] + self.GAMMA * q_values[i]
         return y_k
 
     def load_weights(self, path):
@@ -214,11 +218,11 @@ class DDPGagent(object):
 
                     # predict target Q-values
                     target_qs = self.target_critic([tf.convert_to_tensor(next_states, tf.float32),
-                                                    self.actor(tf.convert_to_tensor(next_states, tf.float32))])
-                    # -> todo: target critic build 하는거 차원,모양 비교해보자.
+                                                    self.target_actor(tf.convert_to_tensor(next_states, tf.float32))])
+                    # -> target_qs 구할때만 target_critic, target_actor가 쓰인다.
 
                     # compute TD targets
-                    y_i = self.td_target(rewards, target_qs.numpy(), dones, truncated)
+                    y_i = self.td_target(rewards, target_qs.numpy(), dones, truncateds)
 
                     # train critic usin sampled batch
                     self.critic_learn(tf.convert_to_tensor(states, dtype=tf.float32),

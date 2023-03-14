@@ -19,12 +19,12 @@ def main():
         env.render()
         action = agent.actor(tf.convert_to_tensor([state], dtype=tf.float32)).numpy()[0]
         print(action.shape)
-        state, reward, done, _ = env.step(action)
+        state, reward, done, truncated, _ = env.step(action)
         time += 1
 
         print('Time: ', time, 'Reward: ', reward)
 
-        if done:
+        if done or truncated:
             break
 
     env.close()
