@@ -132,13 +132,13 @@ class PPOagent(object):
         return mu_a, std_a, action
 
     ## GAE와 시간차 타깃 계산
-    def gae_target(self, rewards, v_values, next_v_value, done):
+    def gae_target(self, rewards, v_values, next_v_value, truncated):  # done -> truncated
         n_step_targets = np.zeros_like(rewards)
         gae = np.zeros_like(rewards)
         gae_cumulative = 0
-        forward_val = 0 # done일 경우 next_v_value는 논리상 0이 되어야 함.
+        forward_val = 0 # truncated일 경우 next_v_value는 논리상 0이 되어야 함.
 
-        if not done:
+        if not truncated:
             forward_val = next_v_value
 
         for k in reversed(range(0, len(rewards))):
@@ -256,7 +256,7 @@ class PPOagent(object):
                 '''states = np.squeeze(batch_state)
                 actions = np.squeeze(batch_action)
                 rewards = np.squeeze(batch_reward)
-                log_old_policy_pdfs = np.squeeze(batch_log_old_policy_pdf)'''  # todo: squeeze로 되는지 테스트해보기.
+                log_old_policy_pdfs = np.squeeze(batch_log_old_policy_pdf)'''  # todo: squeeze로 되는지 테스트해보기. -> squeeze로 하면 학습안됨.. 왤까
                 # 배치 비움
                 batch_state, batch_action, batch_reward = [], [], []
                 batch_log_old_policy_pdf = []
@@ -264,7 +264,7 @@ class PPOagent(object):
                 # GAE와 시간차 타깃 계산
                 next_v_value = self.critic(tf.convert_to_tensor([next_state], dtype=tf.float32))
                 v_values = self.critic(tf.convert_to_tensor(states, dtype=tf.float32))
-                gaes, y_i = self.gae_target(rewards, v_values.numpy(), next_v_value.numpy(), done)
+                gaes, y_i = self.gae_target(rewards, v_values.numpy(), next_v_value.numpy(), truncated) # done -> truncated
 
                 # 에포크만큼 반복
                 #for _ in tqdm(range(self.EPOCHS), desc=f"Epoch progress of episode {ep}", ):

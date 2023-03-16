@@ -102,6 +102,9 @@ class PPOagent(object):
         self.critic = Critic()
         self.actor.build(input_shape=(None, self.state_dim))
         self.critic.build(input_shape=(None, self.state_dim))
+        # build 안하면 아래와 같은 에러 발생.
+        # 애초에 first layer에 input shape를 명시했다면 자동 build가 됐을거라고 함.
+        # todo:  This model has not yet been built. Build the model first by calling `build()` or calling `fit()` with some data, or specify an `input_shape` argument in the first layer(s) for automatic build.
 
         self.actor.summary()
         self.critic.summary()
@@ -118,7 +121,7 @@ class PPOagent(object):
         std = tf.clip_by_value(std, self.std_bound[0], self.std_bound[1])
         var = std**2
         log_policy_pdf = -0.5 * (action - mu)**2 / var - 0.5 * tf.math.log(var * 2 * np.pi)
-        return tf.reduce_sum(log_policy_pdf, 1, keepdims=True)  # keepdimgs 아주 중요..
+        return tf.reduce_sum(log_policy_pdf, 1, keepdims=True) # keepdimgs 아주 중요..
 
 
     ## 액터 신경망으로 정책의 평균, 표준편차를 계산하고 행동 샘플링
@@ -132,13 +135,13 @@ class PPOagent(object):
         return mu_a, std_a, action
 
     ## GAE와 시간차 타깃 계산
-    def gae_target(self, rewards, v_values, next_v_value, done):
+    def gae_target(self, rewards, v_values, next_v_value, truncated):  # done -> truncated
         n_step_targets = np.zeros_like(rewards)
         gae = np.zeros_like(rewards)
         gae_cumulative = 0
-        forward_val = 0 # done일 경우 next_v_value는 논리상 0이 되어야 함.
+        forward_val = 0 # truncated일 경우 next_v_value는 논리상 0이 되어야 함.
 
-        if not done:
+        if not truncated:
             forward_val = next_v_value
 
         for k in reversed(range(0, len(rewards))):
@@ -162,8 +165,8 @@ class PPOagent(object):
     ## 액터 신경망 학습
     def actor_learn(self, log_old_policy_pdf, states, actions, gaes):
         with tf.GradientTape() as tape:
-            mu_a, std_a = self.actor(states, training=True)  # todo: training 제거해서 테스트해보자
-            log_policy_pdf = self.log_pdf(mu_a, std_a, actions)
+            mu_a, std_a = self.actor(states)  # todo: training 제거해서 테스트해보자
+            log_policy_pdf = self.log_pdf(mu_a, std_a, actions) #
 
             ratio = tf.exp(log_policy_pdf-log_old_policy_pdf)
             clipped_ratio = tf.clip_by_value(ratio, 1.0-self.RATIO_CLIPPING, 1.0+self.RATIO_CLIPPING)
@@ -177,7 +180,7 @@ class PPOagent(object):
     ## 크리틱 신경망 학습
     def critic_learn(self, states, td_targets):
         with tf.GradientTape() as tape:
-            td_hat = self.critic(states, training=True)  # todo: training 제거해서 테스트해보자
+            td_hat = self.critic(states)  # todo: training 제거해서 테스트해보자
             loss = tf.reduce_mean(tf.square(td_targets-td_hat))  # 여기서 loss는 mse 즉 "mean" squared error 이다. 주의.
 
         grads = tape.gradient(loss, self.critic.trainable_variables)
@@ -185,8 +188,8 @@ class PPOagent(object):
 
     ## 신경망 파라미터 로드
     def load_weights(self, path):
-        self.actor.load_weights(path + "jin_pendulum_actor.h5") # os.path.join(..,..) 가 더 나을듯..
-        self.critic.load_weights(path + "jin_pendulum_critic.h5")
+        self.actor.load_weights(path + "pendulum_actor.h5") # os.path.join(..,..) 가 더 나을듯..
+        self.critic.load_weights(path + "pendulum_critic.h5")
 
     ## 에이전트 학습
     def train(self, max_episode_num):
@@ -249,15 +252,14 @@ class PPOagent(object):
 
                 # 배치가 채워지면, 학습 진행
                 # 배치에서 데이터 추출
-                '''states = self.unpack_batch(batch_state)
+                states = self.unpack_batch(batch_state)
                 actions = self.unpack_batch(batch_action)
                 rewards = self.unpack_batch(batch_reward)
-                log_old_policy_pdfs = self.unpack_batch(batch_log_old_policy_pdf)'''
-                states = np.squeeze(batch_state)
+                log_old_policy_pdfs = self.unpack_batch(batch_log_old_policy_pdf)
+                '''states = np.squeeze(batch_state)
                 actions = np.squeeze(batch_action)
                 rewards = np.squeeze(batch_reward)
-                log_old_policy_pdfs = np.squeeze(batch_log_old_policy_pdf)  # todo: squeeze로 되는지 테스트해보기.
-
+                log_old_policy_pdfs = np.squeeze(batch_log_old_policy_pdf)'''  # todo: squeeze로 되는지 테스트해보기. -> 안됨..
                 # 배치 비움
                 batch_state, batch_action, batch_reward = [], [], []
                 batch_log_old_policy_pdf = []
@@ -265,7 +267,7 @@ class PPOagent(object):
                 # GAE와 시간차 타깃 계산
                 next_v_value = self.critic(tf.convert_to_tensor([next_state], dtype=tf.float32))
                 v_values = self.critic(tf.convert_to_tensor(states, dtype=tf.float32))
-                gaes, y_i = self.gae_target(rewards, v_values.numpy(), next_v_value.numpy(), done)
+                gaes, y_i = self.gae_target(rewards, v_values.numpy(), next_v_value.numpy(), truncated) # done -> truncated
 
                 # 에포크만큼 반복
                 #for _ in tqdm(range(self.EPOCHS), desc=f"Epoch progress of episode {ep}", ):
@@ -290,12 +292,12 @@ class PPOagent(object):
 
             # 에피소드 10번마다 신경망 파라미터를 파일에 저장
             if ep % 10 == 0:
-                self.actor.save_weights("./save_weights/jin_pendulum_actor.h5")
-                self.critic.save_weights("./save_weights/jin_pendulum_critic.h5")
+                self.actor.save_weights("./save_weights/pendulum_actor.h5")
+                self.critic.save_weights("./save_weights/pendulum_critic.h5")
 
 
         # 학습이 끝난 후, 누적 보상값 저장
-        np.savetxt("./save_weights/jin_pendulum_epi_reward.txt", self.save_epi_reward)
+        np.savetxt("./save_weights/pendulum_epi_reward.txt", self.save_epi_reward)
         print(self.save_epi_reward)
 
     def plot_result(self):
