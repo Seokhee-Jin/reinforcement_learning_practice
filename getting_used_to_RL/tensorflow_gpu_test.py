@@ -3,11 +3,14 @@ import tensorflow as tf
 import numpy as np
 
 """
+pip install tensorflow
+
 gtx1060: 26s per epoch 
 colab gpu: 11s per epoch 
 dankook server: 11s per epoch
 """
 print(f"tf.test.is_gpu_available(): {tf.test.is_gpu_available()}")
+
 
 [X_train, y_train], [X_test, y_test] = keras.datasets.cifar10.load_data()
 X_train = X_train / 255
